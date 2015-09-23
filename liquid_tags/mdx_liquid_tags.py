@@ -21,10 +21,15 @@ LIQUID_TAG = re.compile(r'\{%.*?%\}', re.MULTILINE | re.DOTALL)
 EXTRACT_TAG = re.compile(r'(?:\s*)(\S+)(?:\s*)')
 LT_CONFIG = { 'CODE_DIR': 'code',
               'NOTEBOOK_DIR': 'notebooks',
+              'NOTEBOOK_OUTPUT': 'images',
               'FLICKR_API_KEY': 'flickr'
 }
 LT_HELP = { 'CODE_DIR' : 'Code directory for include_code subplugin',
             'NOTEBOOK_DIR' : 'Notebook directory for notebook subplugin',
+            'NOTEBOOK_OUTPUT' : ('Notebook output (e.g. images) directory for'
+                                 ' notebook subplugin, reliative to the '
+                                 'content directory. False disables separating'
+                                 ' notebook from output.'),
             'FLICKR_API_KEY': 'Flickr key for accessing the API'
 }
 

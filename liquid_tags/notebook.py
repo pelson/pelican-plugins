@@ -50,6 +50,10 @@ from functools import partial
 
 from .mdx_liquid_tags import LiquidTags
 
+from pelican import settings
+
+print(settings)
+
 import IPython
 IPYTHON_VERSION = IPython.version_info[0]
 
@@ -83,13 +87,15 @@ except ImportError:
     from IPython.config import Config
 
 try:
-    from nbconvert.preprocessors import Preprocessor
+    from nbconvert.preprocessors import Preprocessor, ExtractOutputPreprocessor
 except ImportError:
     try:
-        from IPython.nbconvert.preprocessors import Preprocessor
+        from IPython.nbconvert.preprocessors import (Preprocessor,
+                                                     ExtractOutputPreprocessor)
     except ImportError:
         # IPython < 2.0
         from IPython.nbconvert.transformers import Transformer as Preprocessor
+        from IPython.nbconvert.transformers import ExtractOutputTransformer
 
 try:
     from traitlets import Integer
@@ -281,17 +287,34 @@ def notebook(preprocessor, tag, markup):
 
     language_applied_highlighter = partial(custom_highlighter, language=language)
 
+    config_dict = {'CSSHTMLHeaderTransformer':
+                       {'enabled':True, 'highlight_class':'.highlight-ipynb'},
+                   'SubCell':
+                       {'enabled':True, 'start':start, 'end':end},
+                }
+
     nb_dir =  preprocessor.configs.getConfig('NOTEBOOK_DIR')
-    nb_path = os.path.join('content', nb_dir, src)
+    nb_dir = os.path.join('content', nb_dir)
+    nb_path = os.path.join(nb_dir, src)
 
     if not os.path.exists(nb_path):
         raise ValueError("File {0} could not be found".format(nb_path))
 
+    notebook_output =  preprocessor.configs.getConfig('NOTEBOOK_OUTPUT')
+    if notebook_output is not False:
+        output_prefix = os.path.join('content', notebook_output)
+        # Note: This should be relative to the *target* fpath, but we don't
+        # have that context within this extension. :(
+        rel_output_prefix = os.path.relpath(output_prefix, nb_dir)
+        tmpl = (os.path.join(rel_output_prefix, os.path.splitext(src)[0]) +
+                '_{unique_key}_{cell_index}_{index}{extension}')
+
+        config_dict.update({'ExtractOutputPreprocessor':
+                                {'enabled': True,
+                                 'output_filename_template': tmpl}})
+
     # Create the custom notebook converter
-    c = Config({'CSSHTMLHeaderTransformer':
-                    {'enabled':True, 'highlight_class':'.highlight-ipynb'},
-                'SubCell':
-                    {'enabled':True, 'start':start, 'end':end}})
+    c = Config(config_dict)
 
     template_file = 'basic'
     if IPYTHON_VERSION >= 3:
@@ -305,14 +328,16 @@ def notebook(preprocessor, tag, markup):
             template_file = 'pelicanhtml_1'
 
     if IPYTHON_VERSION >= 2:
-        subcell_kwarg = dict(preprocessors=[SubCell])
+        kwargs = dict(preprocessors=[SubCell,
+                                     ExtractOutputPreprocessor])
     else:
-        subcell_kwarg = dict(transformers=[SubCell])
+        kwargs = dict(transformers=[SubCell,
+                                    ExtractOutputTransformer])
 
     exporter = HTMLExporter(config=c,
                             template_file=template_file,
                             filters={'highlight2html': language_applied_highlighter},
-                            **subcell_kwarg)
+                            **kwargs)
 
     # read and parse the notebook
     with open(nb_path) as f:
@@ -326,6 +351,14 @@ def notebook(preprocessor, tag, markup):
                 nb_json = IPython.nbformat.reads(nb_text, as_version=4)
 
     (body, resources) = exporter.from_notebook_node(nb_json)
+    for name, data in resources.get('outputs', {}).items():
+        new_name = os.path.normpath(os.path.join(output_prefix, name))
+        if not os.path.isdir(os.path.dirname(name)):
+            os.makedirs(os.path.dirname(name))
+        # Note: It seems we need to run the pelican build script twice,
+        # for the new images to be copied.
+        with open(new_name, 'wb') as f:
+            f.write(data)
 
     # if we haven't already saved the header, save it here.
     if not notebook.header_saved:
