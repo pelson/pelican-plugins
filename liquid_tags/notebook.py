@@ -52,8 +52,6 @@ from .mdx_liquid_tags import LiquidTags
 
 from pelican import settings
 
-print(settings)
-
 import IPython
 IPYTHON_VERSION = IPython.version_info[0]
 
@@ -353,8 +351,8 @@ def notebook(preprocessor, tag, markup):
     (body, resources) = exporter.from_notebook_node(nb_json)
     for name, data in resources.get('outputs', {}).items():
         new_name = os.path.normpath(os.path.join(output_prefix, name))
-        if not os.path.isdir(os.path.dirname(name)):
-            os.makedirs(os.path.dirname(name))
+        if not os.path.isdir(os.path.dirname(new_name)):
+            os.makedirs(os.path.dirname(new_name))
         # Note: It seems we need to run the pelican build script twice,
         # for the new images to be copied.
         with open(new_name, 'wb') as f:
