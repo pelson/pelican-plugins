@@ -301,9 +301,8 @@ def notebook(preprocessor, tag, markup):
                        {'enabled':True, 'start':start, 'end':end},
                 }
 
-    nb_dir =  preprocessor.configs.getConfig('NOTEBOOK_DIR')
-    nb_dir = os.path.join('content', nb_dir)
-    nb_path = os.path.join(nb_dir, src)
+    nb_dir = preprocessor.configs.getConfig('NOTEBOOK_DIR')
+    nb_path = os.path.join('content', nb_dir, src)
 
     if not os.path.exists(nb_path):
         raise ValueError("File {0} could not be found".format(nb_path))
@@ -313,7 +312,8 @@ def notebook(preprocessor, tag, markup):
         output_prefix = os.path.join('content', notebook_output)
         # Note: This should be relative to the *target* fpath, but we don't
         # have that context within this extension. :(
-        rel_output_prefix = os.path.relpath(output_prefix, nb_dir)
+        rel_output_prefix = os.path.relpath(output_prefix,
+                                            os.path.dirname(nb_path))
         tmpl = (os.path.join(rel_output_prefix, os.path.splitext(src)[0]) +
                 '_{unique_key}_{cell_index}_{index}{extension}')
 
@@ -360,7 +360,9 @@ def notebook(preprocessor, tag, markup):
 
     (body, resources) = exporter.from_notebook_node(nb_json)
     for name, data in resources.get('outputs', {}).items():
-        new_name = os.path.normpath(os.path.join(output_prefix, name))
+        # We hardcode the output directory here... :(
+        full = os.path.join('output', name.replace('../', ''))
+        new_name = os.path.normpath(full)
         if not os.path.isdir(os.path.dirname(new_name)):
             os.makedirs(os.path.dirname(new_name))
         # Note: It seems we need to run the pelican build script twice,
