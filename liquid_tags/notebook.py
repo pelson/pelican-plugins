@@ -60,6 +60,12 @@ try:
 except:
     pass
 
+try:
+    import IPython.nbformat
+except:
+    pass
+
+
 if not IPYTHON_VERSION >= 1:
     raise ValueError("IPython version 1.0+ required for notebook tag")
 
