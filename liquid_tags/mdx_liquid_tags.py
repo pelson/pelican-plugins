@@ -27,6 +27,7 @@ LT_CONFIG = { 'CODE_DIR': 'code',
 }
 LT_HELP = { 'CODE_DIR' : 'Code directory for include_code subplugin',
             'NOTEBOOK_DIR' : 'Notebook directory for notebook subplugin',
+            'NOTEBOOK_OUTPUT': 'The directory for notebook output images',
             'FLICKR_API_KEY': 'Flickr key for accessing the API',
             'GIPHY_API_KEY': 'Giphy key for accessing the API',
 }
