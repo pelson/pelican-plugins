@@ -361,7 +361,10 @@ def notebook(preprocessor, tag, markup):
     (body, resources) = exporter.from_notebook_node(nb_json)
     for name, data in resources.get('outputs', {}).items():
         # We hardcode the output directory here... :(
-        full = os.path.join('output', name.replace('../', ''))
+        abs_name = name
+        while abs_name.startswith('../'):
+            abs_name = abs_name.replace('../', '', 1)  
+        full = os.path.join('output', abs_name)
         new_name = os.path.normpath(full)
         if not os.path.isdir(os.path.dirname(new_name)):
             os.makedirs(os.path.dirname(new_name))
